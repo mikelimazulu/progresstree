@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Black Wolf Survival — Arbre de Progression</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { background: #0a0a0a; overflow-x: hidden; touch-action: pan-x pan-y; }
+  ::-webkit-scrollbar { height: 4px; }
+  ::-webkit-scrollbar-track { background: #111; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const SKILLS = [
+  {
+    id: "initiation",
+    name: "Initiation",
+    subtitle: "Éveil du louveteau",
+    description: "Un excellent point de départ pour les purs débutants. Découvrez les bases de la survie et l'esprit de la meute.",
+    tier: 0, required: [], optional: true,
+    icon: "\u{1F525}", hours: "4h", xp: 100,
+  },
+  {
+    id: "debutant",
+    name: "Survie Débutant",
+    subtitle: "Loup solitaire",
+    description: "La première formation obligatoire. Apprenez à survivre seul en forêt : feu, abri, eau, orientation.",
+    tier: 1, required: [],
+    icon: "\u{1F43A}", hours: "16h", xp: 300,
+  },
+  {
+    id: "intermediaire",
+    name: "Survie Intermédiaire",
+    subtitle: "Chasseur de l'ombre",
+    description: "Perfectionnez vos techniques en conditions plus exigeantes. Nuit complète en forêt, navigation avancée, trapping.",
+    tier: 2, required: ["debutant"],
+    icon: "\u{2694}\u{FE0F}", hours: "24h", xp: 500,
+  },
+  {
+    id: "apothicaire",
+    name: "Apothicaire des Bois",
+    subtitle: "Guérisseur sauvage",
+    description: "Plantes comestibles et médicinales. Identifiez, récoltez et utilisez les ressources de la forêt boréale.",
+    tier: 2, required: ["debutant"],
+    icon: "\u{1F33F}", hours: "12h", xp: 400,
+  },
+  {
+    id: "soins",
+    name: "Soins Austères",
+    subtitle: "Médic de combat",
+    description: "Premiers soins en milieu hostile. Stabilisation, évacuation et traitement quand les secours ne viendront pas.",
+    tier: 2, required: ["debutant"],
+    icon: "\u{1FA78}", hours: "16h", xp: 450,
+  },
+  {
+    id: "navigation",
+    name: "Navigation",
+    subtitle: "Étoile polaire",
+    description: "Orientation par carte, boussole et astres. Ne perdez plus jamais le nord, même dans les conditions les plus hostiles.",
+    tier: 2, required: ["debutant"],
+    icon: "\u{1F9ED}", hours: "12h", xp: 400,
+  },
+  {
+    id: "avance",
+    name: "Survie Avancée",
+    subtitle: "Alpha de la meute",
+    description: "L'ultime épreuve. Survie prolongée en autonomie complète. Menez votre groupe à travers les pires conditions.",
+    tier: 3, required: ["debutant", "intermediaire"],
+    icon: "\u{1F43E}", hours: "48h", xp: 1000,
+  },
+  {
+    id: "camouflage",
+    name: "Camouflage & Furtivité",
+    subtitle: "Fantôme des bois",
+    description: "L'art de disparaître. Techniques militaires de camouflage, déplacement furtif et observation.",
+    tier: 2, required: ["debutant"],
+    icon: "\u{1F441}\u{FE0F}", hours: "12h", xp: 400,
+  },
+  {
+    id: "sere",
+    name: "S.E.R.E.",
+    subtitle: "Survie Évasion Résistance",
+    description: "Survive, Escape, Resist, Evade. Programme d'élite militaire : résistance à la captivité, évasion tactique et survie en territoire hostile.",
+    tier: 4, required: ["avance"],
+    icon: "\u{1F396}\u{FE0F}", hours: "72h", xp: 1200,
+  },
+  {
+    id: "berserker",
+    name: "Défi Berserker",
+    subtitle: "La voie du Valhalla",
+    description: "Le défi ultime. Seuls ceux qui ont maîtrisé chaque discipline peuvent s'avancer. Prouvez que vous êtes digne du titre de Berserker.",
+    tier: 5, required: ["initiation", "debutant", "intermediaire", "avance", "apothicaire", "soins", "navigation", "camouflage", "sere"],
+    icon: "\u{1FA93}", hours: "???", xp: 3000, isChallenge: true,
+  },
+];
+
+const TIER_COUNT = 6;
+const TIER_LABELS = ["ÉVEIL", "FONDATION", "PROGRESSION", "SPÉCIALISATION", "ÉLITE", "LÉGENDE"];
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+  return isMobile;
+}
+
+function getSkillPosition(skill, containerWidth, containerHeight, isMobile) {
+  const xPadding = isMobile ? 50 : 90;
+  const usableWidth = containerWidth - xPadding * 2;
+  const x = xPadding + (skill.tier / (TIER_COUNT - 1)) * usableWidth;
+
+  const tierSkills = SKILLS.filter(s => s.tier === skill.tier);
+  if (tierSkills.length === 1) {
+    return { x, y: containerHeight / 2 };
+  }
+
+  const spacing = isMobile ? 115 : 145;
+  const totalHeight = (tierSkills.length - 1) * spacing;
+  const startY = containerHeight / 2 - totalHeight / 2;
+  const rowIndex = tierSkills.findIndex(s => s.id === skill.id);
+  return { x, y: startY + rowIndex * spacing };
+}
+
+/* Berserker special hexagon shape */
+function HexagonPath(cx, cy, r) {
+  const pts = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i - Math.PI / 2;
+    pts.push(`${cx + r * Math.cos(angle)},${cy + r * Math.sin(angle)}`);
+  }
+  return `M ${pts.join(" L ")} Z`;
+}
+
+function SkillNode({ skill, position, completed, available, onToggle, onSelect, selected, isMobile }) {
+  const isActive = completed.includes(skill.id);
+  const canUnlock = available;
+  const isSelected = selected === skill.id;
+  const nodeR = isMobile ? 36 : 46;
+  const innerR = isMobile ? 29 : 38;
+  const isBerserker = skill.isChallenge;
+
+  const handleClick = () => {
+    if (isMobile) {
+      onSelect(skill.id);
+    } else {
+      if (canUnlock || isActive) onToggle(skill.id);
+    }
+  };
+
+  const glowColor = isBerserker ? "#d4a017" : "#c23a22";
+  const accentColor = isBerserker ? "#d4a017" : "#c23a22";
+  const strokeIdle = isBerserker ? "#665500" : "#444";
+
+  return (
+    <g style={{ cursor: canUnlock || isActive ? "pointer" : "default" }}
+      onClick={handleClick}
+      onMouseEnter={() => !isMobile && onSelect(skill.id)}
+      onMouseLeave={() => !isMobile && onSelect(null)}>
+
+      {/* Outer glow */}
+      {(isActive || isSelected) && !isBerserker && (
+        <circle cx={position.x} cy={position.y} r={nodeR + 8} fill="none"
+          stroke={isActive ? glowColor : "#883322"} strokeWidth="2"
+          opacity={isActive ? 0.6 : 0.3}>
+          <animate attributeName="r" values={`${nodeR+6};${nodeR+12};${nodeR+6}`} dur="2.5s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values={isActive ? "0.6;0.2;0.6" : "0.3;0.1;0.3"} dur="2.5s" repeatCount="indefinite" />
+        </circle>
+      )}
+
+      {/* Berserker outer glow - hexagon pulse */}
+      {isBerserker && (isActive || isSelected) && (
+        <polygon points={HexagonPath(position.x, position.y, nodeR + 12).replace(/[MLZ]/g, '').trim()}
+          fill="none" stroke={isActive ? "#d4a017" : "#886600"} strokeWidth="2" opacity="0.4">
+          <animate attributeName="opacity" values="0.5;0.15;0.5" dur="2s" repeatCount="indefinite" />
+        </polygon>
+      )}
+      {isBerserker && (
+        <React.Fragment>
+          {/* Hexagonal glow ring */}
+          <path d={HexagonPath(position.x, position.y, nodeR + (isActive ? 6 : 4))} fill="none"
+            stroke={isActive ? "#d4a017" : isSelected ? "#886600" : "#332800"}
+            strokeWidth={isActive ? 2 : 1} opacity={isActive ? 0.7 : 0.3}>
+            {(isActive || isSelected) && (
+              <animate attributeName="opacity" values="0.7;0.2;0.7" dur="3s" repeatCount="indefinite" />
+            )}
+          </path>
+        </React.Fragment>
+      )}
+
+      {/* Main shape */}
+      {isBerserker ? (
+        <React.Fragment>
+          <path d={HexagonPath(position.x, position.y, nodeR)}
+            fill={isActive ? "#1a1400" : canUnlock ? "#151510" : "#0c0c0a"}
+            stroke={isActive ? "#d4a017" : canUnlock ? "#665500" : "#332800"}
+            strokeWidth={isActive ? 3 : 2}
+            opacity={canUnlock || isActive ? 1 : 0.5} />
+          <path d={HexagonPath(position.x, position.y, innerR)} fill="none"
+            stroke={isActive ? "#d4a017" : "#332800"} strokeWidth="1"
+            strokeDasharray="4 4" opacity={isActive ? 0.7 : 0.3} />
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <circle cx={position.x} cy={position.y} r={nodeR}
+            fill={isActive ? "#1a0a08" : canUnlock ? "#151515" : "#0c0c0c"}
+            stroke={isActive ? accentColor : canUnlock ? strokeIdle : "#222"}
+            strokeWidth={isActive ? 3 : 2}
+            opacity={canUnlock || isActive ? 1 : 0.5} />
+          <circle cx={position.x} cy={position.y} r={innerR} fill="none"
+            stroke={isActive ? accentColor : "#333"} strokeWidth="1"
+            strokeDasharray="4 4" opacity={isActive ? 0.7 : 0.3} />
+        </React.Fragment>
+      )}
+
+      {/* Icon */}
+      <text x={position.x} y={position.y - 2} textAnchor="middle"
+        dominantBaseline="central" fontSize={isMobile ? (isBerserker ? "24" : "20") : (isBerserker ? "28" : "24")}
+        opacity={canUnlock || isActive ? 1 : 0.35}>
+        {skill.icon}
+      </text>
+
+      {/* XP badge */}
+      {isActive && (
+        <g>
+          <rect x={position.x + (isMobile ? 18 : 26)} y={position.y - (isMobile ? 36 : 46)} width={isBerserker ? 42 : 32} height={16} rx={3} fill={accentColor} />
+          <text x={position.x + (isMobile ? (isBerserker ? 39 : 34) : (isBerserker ? 47 : 42))} y={position.y - (isMobile ? 25 : 35)} textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="'Courier New', monospace">
+            +{skill.xp}
+          </text>
+        </g>
+      )}
+
+      {/* Name label */}
+      <text x={position.x} y={position.y + (isMobile ? 50 : 62)} textAnchor="middle"
+        fill={isActive ? (isBerserker ? "#d4a017" : "#e8d5c4") : canUnlock ? "#aaa" : "#555"}
+        fontSize={isMobile ? "10" : "13"} fontWeight="700"
+        fontFamily="'Trebuchet MS', sans-serif" letterSpacing="0.5">
+        {skill.name.toUpperCase()}
+      </text>
+
+      {/* Subtitle */}
+      {!isMobile && (
+        <text x={position.x} y={position.y + 78} textAnchor="middle"
+          fill={isActive ? accentColor : "#555"} fontSize="10"
+          fontStyle="italic" fontFamily="Georgia, serif">
+          {skill.subtitle}
+        </text>
+      )}
+
+      {/* Optional badge */}
+      {skill.optional && (
+        <g>
+          <rect x={position.x - 28} y={position.y - (isMobile ? 54 : 66)} width={56} height={16} rx={8} fill="none" stroke="#666" strokeWidth="1" />
+          <text x={position.x} y={position.y - (isMobile ? 43 : 55)} textAnchor="middle" fill="#888" fontSize="8" fontFamily="'Courier New', monospace" letterSpacing="1">
+            OPTIONNEL
+          </text>
+        </g>
+      )}
+
+      {/* Challenge badge */}
+      {isBerserker && !isActive && (
+        <g>
+          <rect x={position.x - 16} y={position.y - (isMobile ? 52 : 64)} width={32} height={16} rx={8}
+            fill={canUnlock ? "#d4a017" : "none"} stroke={canUnlock ? "#d4a017" : "#665500"} strokeWidth="1" />
+          <text x={position.x} y={position.y - (isMobile ? 41 : 53)} textAnchor="middle"
+            fill={canUnlock ? "#000" : "#886600"} fontSize="8" fontWeight="800"
+            fontFamily="'Courier New', monospace" letterSpacing="1">
+            DÉFI
+          </text>
+        </g>
+      )}
+
+      {/* Lock icon */}
+      {!canUnlock && !isActive && (
+        <text x={position.x + (isMobile ? 24 : 32)} y={position.y - (isMobile ? 22 : 30)} fontSize={isMobile ? "13" : "15"} opacity="0.4">
+          {"\u{1F512}"}
+        </text>
+      )}
+
+      {/* Checkmark */}
+      {isActive && (
+        <g>
+          <circle cx={position.x - (isMobile ? 24 : 32)} cy={position.y - (isMobile ? 24 : 32)} r={isMobile ? 9 : 11} fill={accentColor} />
+          <text x={position.x - (isMobile ? 24 : 32)} y={position.y - (isMobile ? 21 : 29)} textAnchor="middle" fill={isBerserker ? "#000" : "#fff"} fontSize={isMobile ? "11" : "13"} fontWeight="bold">
+            ✓
+          </text>
+        </g>
+      )}
+    </g>
+  );
+}
+
+function ConnectionLine({ from, to, isActive, isAvailable, isMobile, isBerserkerLine }) {
+  const r = isMobile ? 38 : 48;
+  const midX = (from.x + to.x) / 2;
+  const activeColor = isBerserkerLine ? "#d4a017" : "#c23a22";
+  return (
+    <path
+      d={`M ${from.x + r} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x - r} ${to.y}`}
+      fill="none"
+      stroke={isActive ? activeColor : isAvailable ? (isBerserkerLine ? "#332800" : "#444") : "#222"}
+      strokeWidth={isActive ? 2.5 : 1.5}
+      strokeDasharray={isActive ? "none" : "6 4"}
+      opacity={isActive ? 0.9 : isAvailable ? 0.4 : 0.2}
+    />
+  );
+}
+
+/* Mobile detail panel with swipe-to-dismiss */
+function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
+  if (!skill) return null;
+  const isActive = completed.includes(skill.id);
+  const canUnlock = skill.required.length === 0 || skill.required.every(r => completed.includes(r));
+  const isBerserker = skill.isChallenge;
+  const accent = isBerserker ? "#d4a017" : "#c23a22";
+  const missingReqs = skill.required.filter(r => !completed.includes(r));
+
+  const panelRef = useRef(null);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
+
+  const handleTouchStart = useCallback((e) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+    setIsDragging(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging) return;
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) {
+      e.preventDefault();
+      setDragY(dy);
+    }
+  }, [isDragging]);
+
+  const handleTouchEnd = useCallback(() => {
+    const elapsed = Date.now() - touchStartTime.current;
+    const velocity = dragY / Math.max(elapsed, 1);
+    /* Close if dragged far enough or fast swipe */
+    if (dragY > 80 || velocity > 0.5) {
+      onClose();
+    }
+    setDragY(0);
+    setIsDragging(false);
+  }, [dragY, onClose]);
+
+  /* Prevent body scroll when panel is open */
+  useEffect(() => {
+    const prevent = (e) => e.preventDefault();
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div ref={panelRef}
+      style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
+        background: isBerserker
+          ? "linear-gradient(180deg, #1a1600 0%, #0e0c02 100%)"
+          : "linear-gradient(180deg, #1a1210 0%, #0e0906 100%)",
+        borderTop: `2px solid ${accent}`, borderRadius: "16px 16px 0 0",
+        padding: "12px 20px 28px",
+        boxShadow: `0 -8px 40px #000a, 0 0 30px ${accent}11`,
+        animation: isDragging ? "none" : "slideUp 0.25s ease-out",
+        transform: `translateY(${dragY}px)`,
+        transition: isDragging ? "none" : "transform 0.25s ease-out",
+      }}>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+
+      {/* Drag handle + close button row — only this zone captures swipe */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", position: "relative", marginBottom: 14, padding: "8px 0", touchAction: "none" }}>
+        {/* Drag handle bar */}
+        <div style={{ width: 48, height: 5, background: "#555", borderRadius: 3 }} />
+        {/* X close button */}
+        <div onClick={onClose} style={{
+          position: "absolute", right: 0, top: -2,
+          width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+          borderRadius: "50%", background: "#ffffff0d", cursor: "pointer",
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="6" y1="6" x2="18" y2="18" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+          </svg>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <span style={{ fontSize: 28 }}>{skill.icon}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isBerserker ? "#d4a017" : "#e8d5c4" }}>{skill.name}</span>
+            {isBerserker && <span style={{ fontSize: 9, padding: "2px 8px", background: "#d4a017", color: "#000", borderRadius: 4, fontWeight: 800, letterSpacing: 1 }}>DÉFI</span>}
+          </div>
+          <div style={{ fontSize: 13, color: accent, fontStyle: "italic" }}>{skill.subtitle}</div>
+        </div>
+        <div style={{ textAlign: "right", fontFamily: "'Courier New', monospace", fontSize: 13, color: "#888" }}>
+          <div>{"\u23F1"} {skill.hours}</div>
+          <div>{"\u2B50"} {skill.xp} XP</div>
+        </div>
+      </div>
+
+      <p style={{ fontSize: 14, color: "#999", lineHeight: 1.6, marginBottom: 14, fontFamily: "'Trebuchet MS', sans-serif" }}>
+        {skill.description}
+      </p>
+
+      {skill.required.length > 0 && (
+        <div style={{ fontSize: 12, color: "#666", marginBottom: 14, fontFamily: "'Courier New', monospace" }}>
+          {"\u{1F517}"} Prérequis : {skill.required.map((r, i) => {
+            const s = SKILLS.find(sk => sk.id === r);
+            const done = completed.includes(r);
+            return <span key={r} style={{ color: done ? "#4a4" : "#a44" }}>{s?.name}{i < skill.required.length - 1 ? ", " : ""}</span>;
+          })}
+        </div>
+      )}
+
+      {!canUnlock && missingReqs.length > 0 && (
+        <div style={{ fontSize: 12, color: "#a44", marginBottom: 14, fontFamily: "'Courier New', monospace", padding: "8px 10px", background: "#1a0808", borderRadius: 6, border: "1px solid #331111" }}>
+          {"\u26A0\u{FE0F}"} Manquants : {missingReqs.map(r => SKILLS.find(s => s.id === r)?.name).join(", ")}
+        </div>
+      )}
+
+      <button onClick={() => { if (canUnlock || isActive) { onToggle(skill.id); onClose(); } }}
+        style={{
+          width: "100%", padding: "14px", border: "none", borderRadius: 8,
+          fontSize: 15, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase",
+          fontFamily: "'Trebuchet MS', sans-serif", cursor: canUnlock || isActive ? "pointer" : "not-allowed",
+          background: isActive ? "linear-gradient(135deg, #333, #222)"
+            : canUnlock ? `linear-gradient(135deg, ${accent}, ${isBerserker ? "#b08800" : "#a02010"})`
+            : "#1a1a1a",
+          color: isActive ? accent : canUnlock ? (isBerserker ? "#000" : "#fff") : "#555",
+          border: isActive ? `1px solid ${accent}` : canUnlock ? `1px solid ${accent}` : "1px solid #333",
+          transition: "all 0.2s",
+        }}>
+        {isActive ? "\u2713 Complété — Retirer" : canUnlock ? (isBerserker ? "\u{1FA93} Relever le défi" : "Marquer comme complété") : "\u{1F512} Prérequis manquants"}
+      </button>
+    </div>
+  );
+}
+
+/* Desktop tooltip */
+function DesktopTooltip({ skill, completed }) {
+  if (!skill) return null;
+  const isBerserker = skill.isChallenge;
+  const accent = isBerserker ? "#d4a017" : "#c23a22";
+
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      background: isBerserker
+        ? "linear-gradient(180deg, #1a1600, #100e02)"
+        : "linear-gradient(180deg, #1a1210, #120c0a)",
+      border: `1px solid ${accent}44`, borderRadius: 8, padding: "18px 28px",
+      maxWidth: 520, zIndex: 100, boxShadow: `0 8px 32px #00000088, 0 0 20px ${accent}11`,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <span style={{ fontSize: 24 }}>{skill.icon}</span>
+        <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isBerserker ? "#d4a017" : "#e8d5c4" }}>{skill.name}</span>
+        {isBerserker && <span style={{ fontSize: 9, padding: "2px 8px", background: "#d4a017", color: "#000", borderRadius: 3, fontWeight: 800, letterSpacing: 1 }}>DÉFI</span>}
+        <span style={{ fontSize: 11, color: accent, fontStyle: "italic", marginLeft: "auto" }}>{skill.subtitle}</span>
+      </div>
+      <p style={{ fontSize: 14, color: "#aaa", margin: "0 0 10px", lineHeight: 1.5 }}>{skill.description}</p>
+      <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", fontFamily: "'Courier New', monospace", flexWrap: "wrap" }}>
+        <span>{"\u23F1"} {skill.hours}</span>
+        <span>{"\u2B50"} {skill.xp} XP</span>
+      </div>
+      {skill.required.length > 0 && (
+        <div style={{ marginTop: 8, fontSize: 12, fontFamily: "'Courier New', monospace", display: "flex", flexWrap: "wrap", gap: 4 }}>
+          <span style={{ color: "#666" }}>{"\u{1F517}"} </span>
+          {skill.required.map((r, i) => {
+            const s = SKILLS.find(sk => sk.id === r);
+            const done = completed.includes(r);
+            return <span key={r} style={{ color: done ? "#4a4" : "#a44", marginRight: 2 }}>{s?.name}{i < skill.required.length - 1 ? " ·" : ""}</span>;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Main App */
+function SkillTree() {
+  const [completed, setCompleted] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
+  const [showScrollHint, setShowScrollHint] = useState(true);
+  const containerRef = useRef(null);
+  const scrollRef = useRef(null);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    function handleResize() {
+      if (containerRef.current) {
+        const w = containerRef.current.offsetWidth;
+        if (isMobile) {
+          setDimensions({ width: Math.max(900, w * 1.8), height: 660 });
+        } else {
+          setDimensions({ width: Math.max(w, 1000), height: 800 });
+        }
+      }
+    }
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [isMobile]);
+
+  /* Hide scroll hint once user scrolls */
+  useEffect(() => {
+    if (!isMobile) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      if (el.scrollLeft > 30) setShowScrollHint(false);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [isMobile]);
+
+  const totalXP = SKILLS.filter(s => completed.includes(s.id)).reduce((sum, s) => sum + s.xp, 0);
+  const maxXP = SKILLS.reduce((sum, s) => sum + s.xp, 0);
+  const rank =
+    totalXP === 0 ? "Étranger"
+    : totalXP < 400 ? "Éclaireur"
+    : totalXP < 900 ? "Traqueur"
+    : totalXP < 1800 ? "Guerrier du Nord"
+    : totalXP < 3500 ? "Chef de Meute"
+    : totalXP < 6750 ? "Jarl"
+    : "Berserker";
+
+  const completedCount = completed.length;
+  const totalCount = SKILLS.length;
+
+  function isAvailable(skill) {
+    if (skill.required.length === 0) return true;
+    return skill.required.every(r => completed.includes(r));
+  }
+
+  function toggleSkill(id) {
+    const skill = SKILLS.find(s => s.id === id);
+    if (completed.includes(id)) {
+      /* Remove skill and all dependents recursively */
+      const toRemove = new Set([id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        SKILLS.forEach(s => {
+          if (!toRemove.has(s.id) && s.required.some(r => toRemove.has(r))) {
+            toRemove.add(s.id);
+            changed = true;
+          }
+        });
+      }
+      setCompleted(prev => prev.filter(c => !toRemove.has(c)));
+    } else if (isAvailable(skill)) {
+      setCompleted(prev => [...prev, id]);
+    }
+  }
+
+  const handleSelect = useCallback((id) => {
+    setSelected(prev => prev === id && isMobile ? null : id);
+  }, [isMobile]);
+
+  const positions = {};
+  SKILLS.forEach(s => {
+    positions[s.id] = getSkillPosition(s, dimensions.width, dimensions.height, isMobile);
+  });
+
+  const connections = [];
+  SKILLS.forEach(skill => {
+    /* For berserker, only draw lines from tier 3+ skills to keep it clean */
+    if (skill.isChallenge) {
+      skill.required.filter(r => {
+        const s = SKILLS.find(sk => sk.id === r);
+        return s && s.tier >= 2;
+      }).forEach(reqId => {
+        connections.push({
+          from: positions[reqId], to: positions[skill.id],
+          isActive: completed.includes(skill.id) && completed.includes(reqId),
+          isAvailable: isAvailable(skill),
+          key: `${reqId}-${skill.id}`,
+          isBerserkerLine: true,
+        });
+      });
+    } else {
+      skill.required.forEach(reqId => {
+        connections.push({
+          from: positions[reqId], to: positions[skill.id],
+          isActive: completed.includes(skill.id) && completed.includes(reqId),
+          isAvailable: isAvailable(skill),
+          key: `${reqId}-${skill.id}`,
+          isBerserkerLine: false,
+        });
+      });
+    }
+  });
+
+  /* Optional dashed line initiation -> debutant */
+  connections.push({
+    from: positions["initiation"], to: positions["debutant"],
+    isActive: completed.includes("initiation") && completed.includes("debutant"),
+    isAvailable: true, key: "initiation-debutant", isBerserkerLine: false,
+  });
+
+  const selectedSkill = SKILLS.find(s => s.id === selected);
+
+  return (
+    <div ref={containerRef} style={{
+      background: "linear-gradient(145deg, #0a0a0a 0%, #111 40%, #0d0808 100%)",
+      minHeight: "100vh",
+      fontFamily: "'Trebuchet MS', 'Segoe UI', sans-serif",
+      color: "#e8d5c4", overflow: "hidden", position: "relative",
+    }}>
+      {/* Noise */}
+      <div style={{
+        position: "absolute", inset: 0, pointerEvents: "none", zIndex: 1,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`,
+      }} />
+
+      {/* Header */}
+      <div style={{ position: "relative", zIndex: 2, padding: isMobile ? "16px 16px 0" : "24px 32px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: isMobile ? 10 : 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+              <span style={{ fontSize: isMobile ? 24 : 32 }}>{"\u{1F43A}"}</span>
+              <h1 style={{
+                fontSize: isMobile ? 16 : 24, fontWeight: 900, letterSpacing: isMobile ? 2 : 4,
+                margin: 0, color: "#e8d5c4", textTransform: "uppercase",
+              }}>Black Wolf Survival</h1>
+            </div>
+            <p style={{
+              fontSize: isMobile ? 9 : 12, letterSpacing: isMobile ? 1.5 : 3,
+              color: "#c23a22", margin: `4px 0 0 ${isMobile ? 30 : 42}px`,
+              textTransform: "uppercase", fontWeight: 700,
+            }}>Arbre de progression</p>
+          </div>
+
+          <div style={{ textAlign: "right" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+              <span style={{ fontSize: isMobile ? 10 : 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
+              <span style={{
+                fontSize: isMobile ? 15 : 20, fontWeight: 900, letterSpacing: 1,
+                color: rank === "Berserker" ? "#d4a017" : "#c23a22",
+              }}>{rank}</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
+              <span style={{ fontSize: isMobile ? 10 : 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>XP</span>
+              <div style={{
+                width: isMobile ? 120 : 180, height: isMobile ? 8 : 10,
+                background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden",
+              }}>
+                <div style={{
+                  width: `${(totalXP / maxXP) * 100}%`, height: "100%",
+                  background: totalXP >= maxXP
+                    ? "linear-gradient(90deg, #d4a017, #f0c040)"
+                    : "linear-gradient(90deg, #c23a22, #e85d3a)",
+                  borderRadius: 4, transition: "width 0.6s ease",
+                  boxShadow: totalXP >= maxXP ? "0 0 12px #d4a01766" : "0 0 8px #c23a2266",
+                }} />
+              </div>
+              <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>
+                {totalXP}/{maxXP}
+              </span>
+            </div>
+            <div style={{ fontSize: isMobile ? 10 : 11, color: "#555", marginTop: 4, fontFamily: "'Courier New', monospace" }}>
+              {completedCount}/{totalCount} cours complétés
+            </div>
+          </div>
+        </div>
+
+        {/* Tier labels */}
+        <div style={{
+          display: isMobile ? "none" : "flex", justifyContent: "space-between",
+          margin: "16px 50px 0",
+          position: "relative", zIndex: 2,
+        }}>
+          {TIER_LABELS.map((label, i) => (
+            <div key={i} style={{ textAlign: "center" }}>
+              <span style={{
+                fontSize: 9, letterSpacing: 2, color: i === 5 ? "#d4a01766" : "#444",
+                textTransform: "uppercase", fontWeight: 700,
+                borderBottom: `1px solid ${i === 5 ? "#d4a01733" : "#c23a2233"}`, paddingBottom: 2,
+              }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Skill Tree SVG */}
+      <div ref={scrollRef} style={{
+        position: "relative", zIndex: 2,
+        overflowX: isMobile ? "auto" : "hidden",
+        overflowY: "hidden",
+        WebkitOverflowScrolling: "touch",
+        paddingBottom: isMobile ? 8 : 0,
+      }}>
+        <svg width={dimensions.width} height={dimensions.height} style={{ display: "block" }}>
+          {/* Tier dividers */}
+          {[1, 2, 3, 4, 5].map(tier => {
+            const pad = isMobile ? 50 : 90;
+            const x = pad + (tier / (TIER_COUNT - 1)) * (dimensions.width - pad * 2) - (dimensions.width - pad * 2) / (TIER_COUNT - 1) / 2;
+            return <line key={tier} x1={x} y1={30} x2={x} y2={dimensions.height - 30} stroke="#1a1a1a" strokeWidth="1" strokeDasharray="2 6" />;
+          })}
+          {connections.map(c => <ConnectionLine key={c.key} {...c} isMobile={isMobile} />)}
+          {SKILLS.map(skill => (
+            <SkillNode key={skill.id} skill={skill} position={positions[skill.id]}
+              completed={completed} available={isAvailable(skill)}
+              onToggle={toggleSkill} onSelect={handleSelect}
+              selected={selected} isMobile={isMobile} />
+          ))}
+        </svg>
+      </div>
+
+      {/* Mobile scroll hint */}
+      {isMobile && showScrollHint && (
+        <React.Fragment>
+          <style>{`
+            @keyframes scrollBounce { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+            @keyframes hintFadeIn { from { opacity: 0; } to { opacity: 1; } }
+          `}</style>
+          {/* Right edge gradient fade */}
+          <div style={{
+            position: "absolute", top: 120, right: 0, width: 60, height: "calc(100% - 180px)",
+            background: "linear-gradient(90deg, transparent, #0a0a0acc 60%, #0a0a0a)",
+            pointerEvents: "none", zIndex: 3,
+            animation: "hintFadeIn 0.5s ease-out",
+          }} />
+          {/* Chevron + text */}
+          <div style={{
+            position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)",
+            zIndex: 4, pointerEvents: "none", display: "flex", flexDirection: "column",
+            alignItems: "center", gap: 6,
+            animation: "hintFadeIn 0.8s ease-out",
+          }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 2,
+              animation: "scrollBounce 1.2s ease-in-out infinite",
+            }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c23a22" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c23a22" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -14, opacity: 0.5 }}>
+                <polyline points="9 6 15 12 9 18" />
+              </svg>
+            </div>
+            <span style={{
+              fontSize: 9, color: "#c23a22", letterSpacing: 1.5, textTransform: "uppercase",
+              fontWeight: 700, fontFamily: "'Courier New', monospace",
+              writingMode: "vertical-rl", textOrientation: "mixed",
+            }}>GLISSER</span>
+          </div>
+        </React.Fragment>
+      )}
+
+      {/* Tooltip / Panel */}
+      {isMobile ? (
+        <MobileDetailPanel skill={selectedSkill} completed={completed}
+          onToggle={toggleSkill} onClose={() => setSelected(null)} />
+      ) : (
+        <DesktopTooltip skill={selectedSkill} completed={completed} />
+      )}
+
+      {/* Footer */}
+      <div style={{ textAlign: "center", padding: isMobile ? "4px 0 16px" : "8px 0 20px", position: "relative", zIndex: 2 }}>
+        <p style={{ fontSize: isMobile ? 10 : 12, color: "#444", letterSpacing: isMobile ? 1 : 2, textTransform: "uppercase" }}>
+          {isMobile ? "Tape sur un cours pour voir les détails" : "Clique sur un cours pour marquer ta progression — Survole pour les détails"}
+        </p>
+      </div>
+
+      {/* Backdrop for mobile panel */}
+      {isMobile && selected && (
+        <div onClick={() => setSelected(null)} style={{
+          position: "fixed", inset: 0, background: "#000000aa", zIndex: 150,
+        }} />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<SkillTree />);
+</script>
+<script>
+(function() {
+  function reportHeight() {
+    const height = document.documentElement.scrollHeight;
+    window.parent.postMessage({ type: "resize", height: height }, "*");
+  }
+  window.addEventListener("load", reportHeight);
+  window.addEventListener("resize", reportHeight);
+  if (window.MutationObserver) {
+    const observer = new MutationObserver(() => { setTimeout(reportHeight, 200); });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+  }
+})();
+</script>
+</body>
+</html>
