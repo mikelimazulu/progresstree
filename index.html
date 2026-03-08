@@ -38,6 +38,46 @@ const SKILLS = [
     icon: "\u{1F43A}", hours: "16h", xp: 300,
   },
   {
+    id: "apothicaire",
+    name: "Apothicaire des Bois",
+    subtitle: "Guérisseur sauvage",
+    description: "Plantes comestibles et médicinales. Identifiez, récoltez et utilisez les ressources de la forêt boréale.",
+    tier: 1, required: [],
+    icon: "\u{1F33F}", hours: "12h", xp: 400,
+  },
+  {
+    id: "soins",
+    name: "Soins Austères",
+    subtitle: "Médic de combat",
+    description: "Premiers soins en milieu hostile. Stabilisation, évacuation et traitement quand les secours ne viendront pas.",
+    tier: 1, required: [],
+    icon: "\u{1FA78}", hours: "16h", xp: 450,
+  },
+  {
+    id: "navigation",
+    name: "Navigation",
+    subtitle: "Étoile polaire",
+    description: "Orientation par carte, boussole et astres. Ne perdez plus jamais le nord, même dans les conditions les plus hostiles.",
+    tier: 1, required: [],
+    icon: "\u{1F9ED}", hours: "12h", xp: 400,
+  },
+  {
+    id: "camouflage",
+    name: "Camouflage & Furtivité",
+    subtitle: "Fantôme des bois",
+    description: "L'art de disparaître. Techniques militaires de camouflage, déplacement furtif et observation.",
+    tier: 1, required: [],
+    icon: "\u{1F441}\u{FE0F}", hours: "12h", xp: 400,
+  },
+  {
+    id: "pistage",
+    name: "Pistage de Combat",
+    subtitle: "L'oeil du prédateur",
+    description: "Traquer, lire les signes, interpréter les traces. Devenez le chasseur que la forêt n'a jamais vu venir.",
+    tier: 1, required: [],
+    icon: "\u{1F43E}", hours: "12h", xp: 400,
+  },
+  {
     id: "intermediaire",
     name: "Survie Intermédiaire",
     subtitle: "Chasseur de l'ombre",
@@ -46,51 +86,19 @@ const SKILLS = [
     icon: "\u{2694}\u{FE0F}", hours: "24h", xp: 500,
   },
   {
-    id: "apothicaire",
-    name: "Apothicaire des Bois",
-    subtitle: "Guérisseur sauvage",
-    description: "Plantes comestibles et médicinales. Identifiez, récoltez et utilisez les ressources de la forêt boréale.",
-    tier: 2, required: ["debutant"],
-    icon: "\u{1F33F}", hours: "12h", xp: 400,
-  },
-  {
-    id: "soins",
-    name: "Soins Austères",
-    subtitle: "Médic de combat",
-    description: "Premiers soins en milieu hostile. Stabilisation, évacuation et traitement quand les secours ne viendront pas.",
-    tier: 2, required: ["debutant"],
-    icon: "\u{1FA78}", hours: "16h", xp: 450,
-  },
-  {
-    id: "navigation",
-    name: "Navigation",
-    subtitle: "Étoile polaire",
-    description: "Orientation par carte, boussole et astres. Ne perdez plus jamais le nord, même dans les conditions les plus hostiles.",
-    tier: 2, required: ["debutant"],
-    icon: "\u{1F9ED}", hours: "12h", xp: 400,
-  },
-  {
     id: "avance",
     name: "Survie Avancée",
     subtitle: "Alpha de la meute",
     description: "L'ultime épreuve. Survie prolongée en autonomie complète. Menez votre groupe à travers les pires conditions.",
     tier: 3, required: ["debutant", "intermediaire"],
-    icon: "\u{1F43E}", hours: "48h", xp: 1000,
-  },
-  {
-    id: "camouflage",
-    name: "Camouflage & Furtivité",
-    subtitle: "Fantôme des bois",
-    description: "L'art de disparaître. Techniques militaires de camouflage, déplacement furtif et observation.",
-    tier: 2, required: ["debutant"],
-    icon: "\u{1F441}\u{FE0F}", hours: "12h", xp: 400,
+    icon: "\u{1F40A}", hours: "48h", xp: 1000,
   },
   {
     id: "sere",
     name: "S.E.R.E.",
     subtitle: "Survie Évasion Résistance",
     description: "Survive, Escape, Resist, Evade. Programme d'élite militaire : résistance à la captivité, évasion tactique et survie en territoire hostile.",
-    tier: 4, required: ["avance"],
+    tier: 4, required: ["debutant", "intermediaire", "avance", "soins", "navigation", "camouflage", "pistage"],
     icon: "\u{1F396}\u{FE0F}", hours: "72h", xp: 1200,
   },
   {
@@ -98,13 +106,13 @@ const SKILLS = [
     name: "Défi Berserker",
     subtitle: "La voie du Valhalla",
     description: "Le défi ultime. Seuls ceux qui ont maîtrisé chaque discipline peuvent s'avancer. Prouvez que vous êtes digne du titre de Berserker.",
-    tier: 5, required: ["initiation", "debutant", "intermediaire", "avance", "apothicaire", "soins", "navigation", "camouflage", "sere"],
+    tier: 5, required: ["debutant", "intermediaire", "avance", "sere"],
     icon: "\u{1FA93}", hours: "???", xp: 3000, isChallenge: true,
   },
 ];
 
 const TIER_COUNT = 6;
-const TIER_LABELS = ["ÉVEIL", "FONDATION", "PROGRESSION", "SPÉCIALISATION", "ÉLITE", "LÉGENDE"];
+const TIER_LABELS = ["ÉVEIL", "FONDATION", "PROGRESSION", "AVANCÉ", "ÉLITE", "LÉGENDE"];
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -126,7 +134,7 @@ function getSkillPosition(skill, containerWidth, containerHeight, isMobile) {
     return { x, y: containerHeight / 2 };
   }
 
-  const spacing = isMobile ? 115 : 145;
+  const spacing = isMobile ? 105 : 125;
   const totalHeight = (tierSkills.length - 1) * spacing;
   const startY = containerHeight / 2 - totalHeight / 2;
   const rowIndex = tierSkills.findIndex(s => s.id === skill.id);
@@ -499,7 +507,7 @@ function DesktopTooltip({ skill, completed }) {
 function SkillTree() {
   const [completed, setCompleted] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
+  const [dimensions, setDimensions] = useState({ width: 1200, height: 880 });
   const [showScrollHint, setShowScrollHint] = useState(true);
   const containerRef = useRef(null);
   const scrollRef = useRef(null);
@@ -510,9 +518,9 @@ function SkillTree() {
       if (containerRef.current) {
         const w = containerRef.current.offsetWidth;
         if (isMobile) {
-          setDimensions({ width: Math.max(900, w * 1.8), height: 660 });
+          setDimensions({ width: Math.max(900, w * 1.8), height: 720 });
         } else {
-          setDimensions({ width: Math.max(w, 1000), height: 800 });
+          setDimensions({ width: Math.max(w, 1000), height: 880 });
         }
       }
     }
@@ -537,11 +545,11 @@ function SkillTree() {
   const maxXP = SKILLS.reduce((sum, s) => sum + s.xp, 0);
   const rank =
     totalXP === 0 ? "Étranger"
-    : totalXP < 400 ? "Éclaireur"
-    : totalXP < 900 ? "Traqueur"
-    : totalXP < 1800 ? "Guerrier du Nord"
-    : totalXP < 3500 ? "Chef de Meute"
-    : totalXP < 6750 ? "Jarl"
+    : totalXP < 500 ? "Éclaireur"
+    : totalXP < 1200 ? "Traqueur"
+    : totalXP < 2500 ? "Guerrier du Nord"
+    : totalXP < 4000 ? "Chef de Meute"
+    : totalXP < 7750 ? "Jarl"
     : "Berserker";
 
   const completedCount = completed.length;
@@ -584,18 +592,26 @@ function SkillTree() {
 
   const connections = [];
   SKILLS.forEach(skill => {
-    /* For berserker, only draw lines from tier 3+ skills to keep it clean */
     if (skill.isChallenge) {
-      skill.required.filter(r => {
-        const s = SKILLS.find(sk => sk.id === r);
-        return s && s.tier >= 2;
-      }).forEach(reqId => {
+      /* Berserker: only draw line from SERE to keep it clean */
+      ["sere"].forEach(reqId => {
         connections.push({
           from: positions[reqId], to: positions[skill.id],
           isActive: completed.includes(skill.id) && completed.includes(reqId),
           isAvailable: isAvailable(skill),
           key: `${reqId}-${skill.id}`,
           isBerserkerLine: true,
+        });
+      });
+    } else if (skill.id === "sere") {
+      /* SERE: draw from avance + the standalone tier 1 courses (not debutant/intermediaire since avance implies them) */
+      ["avance", "soins", "navigation", "camouflage", "pistage"].forEach(reqId => {
+        connections.push({
+          from: positions[reqId], to: positions[skill.id],
+          isActive: completed.includes(skill.id) && completed.includes(reqId),
+          isAvailable: isAvailable(skill),
+          key: `${reqId}-${skill.id}`,
+          isBerserkerLine: false,
         });
       });
     } else {
