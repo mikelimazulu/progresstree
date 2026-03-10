@@ -325,7 +325,7 @@ function ConnectionLine({ from, to, isActive, isAvailable, isMobile, isBerserker
   );
 }
 
-/* Mobile detail panel with swipe-to-dismiss */
+/* Mobile detail modal - centered in viewport */
 function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   if (!skill) return null;
   const isActive = completed.includes(skill.id);
@@ -334,72 +334,40 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   const accent = isBerserker ? "#d4a017" : "#c23a22";
   const missingReqs = skill.required.filter(r => !completed.includes(r));
 
-  const panelRef = useRef(null);
-  const [dragY, setDragY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
-
-  const handleTouchStart = useCallback((e) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-    setIsDragging(true);
-  }, []);
-
-  const handleTouchMove = useCallback((e) => {
-    if (!isDragging) return;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (dy > 0) {
-      e.preventDefault();
-      setDragY(dy);
-    }
-  }, [isDragging]);
-
-  const handleTouchEnd = useCallback(() => {
-    const elapsed = Date.now() - touchStartTime.current;
-    const velocity = dragY / Math.max(elapsed, 1);
-    /* Close if dragged far enough or fast swipe */
-    if (dragY > 80 || velocity > 0.5) {
-      onClose();
-    }
-    setDragY(0);
-    setIsDragging(false);
-  }, [dragY, onClose]);
-
-  /* Prevent body scroll when panel is open */
+  /* Prevent body scroll when modal is open */
   useEffect(() => {
-    const prevent = (e) => e.preventDefault();
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
   return (
-    <div ref={panelRef}
-      style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 9999,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "20px 16px",
+    }}>
+      {/* Backdrop */}
+      <div onClick={onClose} style={{
+        position: "absolute", inset: 0, background: "#000000cc",
+      }} />
+
+      {/* Modal card */}
+      <div style={{
+        position: "relative", width: "100%", maxWidth: 380, maxHeight: "85vh",
+        overflowY: "auto",
         background: isBerserker
           ? "linear-gradient(180deg, #1a1600 0%, #0e0c02 100%)"
           : "linear-gradient(180deg, #1a1210 0%, #0e0906 100%)",
-        borderTop: `2px solid ${accent}`, borderRadius: "16px 16px 0 0",
-        padding: "12px 20px 28px",
-        boxShadow: `0 -8px 40px #000a, 0 0 30px ${accent}11`,
-        animation: isDragging ? "none" : "slideUp 0.25s ease-out",
-        transform: `translateY(${dragY}px)`,
-        transition: isDragging ? "none" : "transform 0.25s ease-out",
+        border: `1px solid ${accent}55`, borderRadius: 16,
+        padding: "20px 20px 24px",
+        boxShadow: `0 16px 60px #000c, 0 0 40px ${accent}15`,
+        animation: "modalPop 0.2s ease-out",
       }}>
-      <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }`}</style>
+        <style>{`@keyframes modalPop { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }`}</style>
 
-      {/* Drag handle + close button row — only this zone captures swipe */}
-      <div
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        style={{ display: "flex", alignItems: "center", justifyContent: "center", position: "relative", marginBottom: 14, padding: "8px 0", touchAction: "none" }}>
-        {/* Drag handle bar */}
-        <div style={{ width: 48, height: 5, background: "#555", borderRadius: 3 }} />
-        {/* X close button */}
+        {/* Close X */}
         <div onClick={onClose} style={{
-          position: "absolute", right: 0, top: -2,
+          position: "absolute", top: 12, right: 12,
           width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
           borderRadius: "50%", background: "#ffffff0d", cursor: "pointer",
         }}>
@@ -408,57 +376,71 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
             <line x1="18" y1="6" x2="6" y2="18" />
           </svg>
         </div>
-      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-        <span style={{ fontSize: 28 }}>{skill.icon}</span>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isBerserker ? "#d4a017" : "#e8d5c4" }}>{skill.name}</span>
-            {isBerserker && <span style={{ fontSize: 9, padding: "2px 8px", background: "#d4a017", color: "#000", borderRadius: 4, fontWeight: 800, letterSpacing: 1 }}>DÉFI</span>}
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12, paddingRight: 28 }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: isBerserker ? 10 : "50%",
+            background: isActive ? (isBerserker ? "#1a1400" : "#1a0a08") : "#141414",
+            border: `2px solid ${isActive ? accent : "#333"}`,
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 24 }}>{skill.icon}</span>
           </div>
-          <div style={{ fontSize: 13, color: accent, fontStyle: "italic" }}>{skill.subtitle}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: isBerserker ? "#d4a017" : "#e8d5c4" }}>{skill.name}</span>
+              {isBerserker && <span style={{ fontSize: 8, padding: "2px 7px", background: "#d4a017", color: "#000", borderRadius: 4, fontWeight: 800, letterSpacing: 1 }}>DÉFI</span>}
+            </div>
+            <div style={{ fontSize: 12, color: accent, fontStyle: "italic", marginTop: 2 }}>{skill.subtitle}</div>
+          </div>
         </div>
-        <div style={{ textAlign: "right", fontFamily: "'Courier New', monospace", fontSize: 13, color: "#888" }}>
-          <div>{"\u23F1"} {skill.hours}</div>
-          <div>{"\u2B50"} {skill.xp} XP</div>
+
+        {/* Stats */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12, color: "#888", fontFamily: "'Courier New', monospace" }}>
+          <span>{"\u23F1"} {skill.hours}</span>
+          <span>{"\u2B50"} {skill.xp} XP</span>
         </div>
+
+        {/* Description */}
+        <p style={{ fontSize: 14, color: "#999", lineHeight: 1.6, marginBottom: 14, fontFamily: "'Trebuchet MS', sans-serif" }}>
+          {skill.description}
+        </p>
+
+        {/* Prérequis */}
+        {skill.required.length > 0 && (
+          <div style={{ fontSize: 12, color: "#666", marginBottom: 14, fontFamily: "'Courier New', monospace", lineHeight: 1.6 }}>
+            {"\u{1F517}"} Prérequis : {skill.required.map((r, i) => {
+              const s = SKILLS.find(sk => sk.id === r);
+              const done = completed.includes(r);
+              return <span key={r} style={{ color: done ? "#4a4" : "#a44" }}>{s?.name}{i < skill.required.length - 1 ? ", " : ""}</span>;
+            })}
+          </div>
+        )}
+
+        {/* Missing warning */}
+        {!canUnlock && missingReqs.length > 0 && (
+          <div style={{ fontSize: 11, color: "#a44", marginBottom: 14, fontFamily: "'Courier New', monospace", padding: "8px 10px", background: "#1a0808", borderRadius: 6, border: "1px solid #331111", lineHeight: 1.5 }}>
+            {"\u26A0\u{FE0F}"} Manquants : {missingReqs.map(r => SKILLS.find(s => s.id === r)?.name).join(", ")}
+          </div>
+        )}
+
+        {/* Action button */}
+        <button onClick={() => { if (canUnlock || isActive) { onToggle(skill.id); onClose(); } }}
+          style={{
+            width: "100%", padding: "14px", border: "none", borderRadius: 8,
+            fontSize: 14, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase",
+            fontFamily: "'Trebuchet MS', sans-serif", cursor: canUnlock || isActive ? "pointer" : "not-allowed",
+            background: isActive ? "linear-gradient(135deg, #333, #222)"
+              : canUnlock ? `linear-gradient(135deg, ${accent}, ${isBerserker ? "#b08800" : "#a02010"})`
+              : "#1a1a1a",
+            color: isActive ? accent : canUnlock ? (isBerserker ? "#000" : "#fff") : "#555",
+            border: isActive ? `1px solid ${accent}` : canUnlock ? `1px solid ${accent}` : "1px solid #333",
+            transition: "all 0.2s",
+          }}>
+          {isActive ? "\u2713 Complété — Retirer" : canUnlock ? (isBerserker ? "\u{1FA93} Relever le défi" : "Marquer comme complété") : "\u{1F512} Prérequis manquants"}
+        </button>
       </div>
-
-      <p style={{ fontSize: 14, color: "#999", lineHeight: 1.6, marginBottom: 14, fontFamily: "'Trebuchet MS', sans-serif" }}>
-        {skill.description}
-      </p>
-
-      {skill.required.length > 0 && (
-        <div style={{ fontSize: 12, color: "#666", marginBottom: 14, fontFamily: "'Courier New', monospace" }}>
-          {"\u{1F517}"} Prérequis : {skill.required.map((r, i) => {
-            const s = SKILLS.find(sk => sk.id === r);
-            const done = completed.includes(r);
-            return <span key={r} style={{ color: done ? "#4a4" : "#a44" }}>{s?.name}{i < skill.required.length - 1 ? ", " : ""}</span>;
-          })}
-        </div>
-      )}
-
-      {!canUnlock && missingReqs.length > 0 && (
-        <div style={{ fontSize: 12, color: "#a44", marginBottom: 14, fontFamily: "'Courier New', monospace", padding: "8px 10px", background: "#1a0808", borderRadius: 6, border: "1px solid #331111" }}>
-          {"\u26A0\u{FE0F}"} Manquants : {missingReqs.map(r => SKILLS.find(s => s.id === r)?.name).join(", ")}
-        </div>
-      )}
-
-      <button onClick={() => { if (canUnlock || isActive) { onToggle(skill.id); onClose(); } }}
-        style={{
-          width: "100%", padding: "14px", border: "none", borderRadius: 8,
-          fontSize: 15, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase",
-          fontFamily: "'Trebuchet MS', sans-serif", cursor: canUnlock || isActive ? "pointer" : "not-allowed",
-          background: isActive ? "linear-gradient(135deg, #333, #222)"
-            : canUnlock ? `linear-gradient(135deg, ${accent}, ${isBerserker ? "#b08800" : "#a02010"})`
-            : "#1a1a1a",
-          color: isActive ? accent : canUnlock ? (isBerserker ? "#000" : "#fff") : "#555",
-          border: isActive ? `1px solid ${accent}` : canUnlock ? `1px solid ${accent}` : "1px solid #333",
-          transition: "all 0.2s",
-        }}>
-        {isActive ? "\u2713 Complété — Retirer" : canUnlock ? (isBerserker ? "\u{1FA93} Relever le défi" : "Marquer comme complété") : "\u{1F512} Prérequis manquants"}
-      </button>
     </div>
   );
 }
@@ -864,13 +846,7 @@ function SkillTree() {
           </p>
         </div>
 
-        {/* Backdrop + Panel rendered via portal to body for reliable fixed positioning */}
-        {selected && ReactDOM.createPortal(
-          <div onClick={() => setSelected(null)} style={{
-            position: "fixed", inset: 0, background: "#000000aa", zIndex: 9998,
-          }} />,
-          document.body
-        )}
+        {/* Modal rendered via portal for reliable positioning */}
         {selectedSkill && ReactDOM.createPortal(
           <MobileDetailPanel skill={selectedSkill} completed={completed}
             onToggle={toggleSkill} onClose={() => setSelected(null)} />,
