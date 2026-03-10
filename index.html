@@ -636,7 +636,245 @@ function SkillTree() {
 
   const selectedSkill = SKILLS.find(s => s.id === selected);
 
-  return (
+  /* ── Mobile vertical card node ── */
+  function MobileNode({ skill, size }) {
+    const isActive = completed.includes(skill.id);
+    const canUnlock = isAvailable(skill);
+    const isBerserker = skill.isChallenge;
+    const accent = isBerserker ? "#d4a017" : "#c23a22";
+    const sz = size === "lg" ? 72 : 56;
+
+    return (
+      <div onClick={() => handleSelect(skill.id)} style={{
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+        cursor: "pointer", opacity: canUnlock || isActive ? 1 : 0.45,
+        transition: "transform 0.15s", position: "relative",
+      }}>
+        {/* Badge above */}
+        {skill.optional && (
+          <span style={{ fontSize: 8, color: "#888", letterSpacing: 1.5, fontFamily: "'Courier New', monospace", border: "1px solid #555", borderRadius: 8, padding: "1px 8px" }}>OPTIONNEL</span>
+        )}
+        {isBerserker && !isActive && (
+          <span style={{ fontSize: 8, color: canUnlock ? "#000" : "#886600", background: canUnlock ? "#d4a017" : "transparent", border: `1px solid ${canUnlock ? "#d4a017" : "#665500"}`, letterSpacing: 1.5, fontFamily: "'Courier New', monospace", borderRadius: 8, padding: "1px 8px", fontWeight: 800 }}>DÉFI</span>
+        )}
+        {/* Circle / Hexagon */}
+        <div style={{
+          width: sz, height: sz, borderRadius: isBerserker ? 12 : "50%",
+          background: isActive ? (isBerserker ? "#1a1400" : "#1a0a08") : "#141414",
+          border: `${isActive ? 3 : 2}px solid ${isActive ? accent : canUnlock ? (isBerserker ? "#665500" : "#444") : "#282828"}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "relative",
+          boxShadow: isActive ? `0 0 20px ${accent}44, inset 0 0 15px ${accent}11` : "0 2px 8px #0008",
+          transform: isBerserker ? "rotate(0deg)" : undefined,
+        }}>
+          <span style={{ fontSize: size === "lg" ? 28 : 22 }}>{skill.icon}</span>
+          {/* Checkmark */}
+          {isActive && (
+            <div style={{
+              position: "absolute", top: -4, right: -4, width: 20, height: 20,
+              borderRadius: "50%", background: accent,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span style={{ color: isBerserker ? "#000" : "#fff", fontSize: 12, fontWeight: "bold" }}>✓</span>
+            </div>
+          )}
+          {/* Lock */}
+          {!canUnlock && !isActive && (
+            <div style={{ position: "absolute", bottom: -2, right: -2, fontSize: 12, opacity: 0.5 }}>{"\u{1F512}"}</div>
+          )}
+          {/* XP badge */}
+          {isActive && (
+            <div style={{
+              position: "absolute", top: -4, left: -4, background: accent,
+              borderRadius: 4, padding: "1px 5px", fontSize: 8, fontWeight: 700,
+              color: isBerserker ? "#000" : "#fff", fontFamily: "'Courier New', monospace",
+            }}>+{skill.xp}</div>
+          )}
+        </div>
+        {/* Label */}
+        <span style={{
+          fontSize: size === "lg" ? 12 : 10, fontWeight: 700, textTransform: "uppercase",
+          letterSpacing: 0.5, textAlign: "center", lineHeight: 1.2, maxWidth: 100,
+          color: isActive ? (isBerserker ? "#d4a017" : "#e8d5c4") : canUnlock ? "#aaa" : "#555",
+        }}>{skill.name}</span>
+        {size === "lg" && (
+          <span style={{ fontSize: 9, color: isActive ? accent : "#555", fontStyle: "italic", fontFamily: "Georgia, serif" }}>
+            {skill.subtitle}
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  /* ── Vertical connector arrow ── */
+  function VArrow({ active, gold }) {
+    const c = gold ? "#d4a017" : "#c23a22";
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "4px 0" }}>
+        <svg width="20" height="28" viewBox="0 0 20 28">
+          <line x1="10" y1="0" x2="10" y2="20" stroke={active ? c : "#333"} strokeWidth="2" strokeDasharray={active ? "none" : "4 3"} />
+          <polygon points="4,18 10,26 16,18" fill={active ? c : "#333"} />
+        </svg>
+      </div>
+    );
+  }
+
+  /* ── Converge arrows (multiple → one) ── */
+  function ConvergeArrows({ active }) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", padding: "2px 0" }}>
+        <svg width="120" height="24" viewBox="0 0 120 24">
+          <line x1="20" y1="0" x2="60" y2="20" stroke={active ? "#c23a22" : "#333"} strokeWidth="1.5" strokeDasharray={active ? "none" : "4 3"} />
+          <line x1="60" y1="0" x2="60" y2="20" stroke={active ? "#c23a22" : "#333"} strokeWidth="1.5" strokeDasharray={active ? "none" : "4 3"} />
+          <line x1="100" y1="0" x2="60" y2="20" stroke={active ? "#c23a22" : "#333"} strokeWidth="1.5" strokeDasharray={active ? "none" : "4 3"} />
+          <polygon points="55,18 60,24 65,18" fill={active ? "#c23a22" : "#333"} />
+        </svg>
+      </div>
+    );
+  }
+
+  /* ── Section label ── */
+  function TierLabel({ text, gold }) {
+    return (
+      <div style={{ textAlign: "center", padding: "12px 0 6px" }}>
+        <span style={{
+          fontSize: 9, letterSpacing: 3, textTransform: "uppercase", fontWeight: 700,
+          color: gold ? "#d4a01788" : "#44444488", fontFamily: "'Courier New', monospace",
+          borderBottom: `1px solid ${gold ? "#d4a01733" : "#c23a2222"}`, paddingBottom: 3,
+        }}>{text}</span>
+      </div>
+    );
+  }
+
+  /* ── Check helpers ── */
+  const allSerePreDone = ["debutant","intermediaire","avance","soins","navigation","camouflage","pistage"].every(r => completed.includes(r));
+  const allBerserkerPreDone = ["debutant","intermediaire","avance","sere"].every(r => completed.includes(r));
+
+  /* ══════════════ MOBILE VERTICAL LAYOUT ══════════════ */
+  if (isMobile) {
+    return (
+      <div ref={containerRef} style={{
+        background: "linear-gradient(180deg, #0a0a0a 0%, #111 30%, #0d0808 100%)",
+        minHeight: "100vh", padding: "0 0 40px",
+        fontFamily: "'Trebuchet MS', 'Segoe UI', sans-serif",
+        color: "#e8d5c4", position: "relative",
+      }}>
+        {/* Noise */}
+        <div style={{
+          position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E")`,
+        }} />
+
+        {/* Header */}
+        <div style={{ position: "relative", zIndex: 2, padding: "16px 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 24 }}>{"\u{1F43A}"}</span>
+                <h1 style={{ fontSize: 16, fontWeight: 900, letterSpacing: 2, margin: 0, color: "#e8d5c4", textTransform: "uppercase" }}>Black Wolf Survival</h1>
+              </div>
+              <p style={{ fontSize: 9, letterSpacing: 1.5, color: "#c23a22", margin: "4px 0 0 32px", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                <span style={{ fontSize: 9, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
+                <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
+                <div style={{ width: 100, height: 6, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
+                  <div style={{
+                    width: `${(totalXP / maxXP) * 100}%`, height: "100%",
+                    background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
+                    borderRadius: 4, transition: "width 0.6s ease",
+                  }} />
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>{totalXP}/{maxXP}</span>
+              </div>
+              <div style={{ fontSize: 9, color: "#555", marginTop: 3, fontFamily: "'Courier New', monospace" }}>{completedCount}/{totalCount} cours</div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── TREE ── */}
+        <div style={{ position: "relative", zIndex: 2, padding: "12px 16px" }}>
+
+          {/* TIER 0: Initiation */}
+          <TierLabel text="Éveil" />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "initiation")} size="lg" />
+          </div>
+
+          <VArrow active={completed.includes("initiation")} />
+
+          {/* TIER 1: Fondation - Survie Débutant centered */}
+          <TierLabel text="Fondation" />
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "debutant")} size="lg" />
+          </div>
+
+          {/* TIER 1: Standalone courses grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, justifyItems: "center", padding: "4px 0 4px" }}>
+            {["apothicaire","soins","navigation","camouflage","pistage"].map(id => (
+              <MobileNode key={id} skill={SKILLS.find(s => s.id === id)} size="sm" />
+            ))}
+          </div>
+
+          {/* Arrow from Débutant to Intermédiaire */}
+          <VArrow active={completed.includes("debutant")} />
+
+          {/* TIER 2: Intermédiaire */}
+          <TierLabel text="Progression" />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "intermediaire")} size="lg" />
+          </div>
+
+          <VArrow active={completed.includes("intermediaire")} />
+
+          {/* TIER 3: Avancée */}
+          <TierLabel text="Avancé" />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "avance")} size="lg" />
+          </div>
+
+          <ConvergeArrows active={allSerePreDone} />
+
+          {/* TIER 4: SERE */}
+          <TierLabel text="Élite" />
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "sere")} size="lg" />
+          </div>
+
+          <VArrow active={completed.includes("sere")} gold />
+
+          {/* TIER 5: Berserker */}
+          <TierLabel text="Légende" gold />
+          <div style={{ display: "flex", justifyContent: "center", paddingBottom: 12 }}>
+            <MobileNode skill={SKILLS.find(s => s.id === "berserker")} size="lg" />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: "center", padding: "8px 0", position: "relative", zIndex: 2 }}>
+          <p style={{ fontSize: 10, color: "#444", letterSpacing: 1, textTransform: "uppercase" }}>
+            Tape sur un cours pour voir les détails
+          </p>
+        </div>
+
+        {/* Mobile detail panel */}
+        <MobileDetailPanel skill={selectedSkill} completed={completed}
+          onToggle={toggleSkill} onClose={() => setSelected(null)} />
+
+        {/* Backdrop */}
+        {selected && (
+          <div onClick={() => setSelected(null)} style={{
+            position: "fixed", inset: 0, background: "#000000aa", zIndex: 150,
+          }} />
+        )}
+      </div>
+    );
+  }
+
+  /* ══════════════ DESKTOP SVG LAYOUT ══════════════ */  return (
     <div ref={containerRef} style={{
       background: "linear-gradient(145deg, #0a0a0a 0%, #111 40%, #0d0808 100%)",
       minHeight: "100vh",
@@ -650,62 +888,39 @@ function SkillTree() {
       }} />
 
       {/* Header */}
-      <div style={{ position: "relative", zIndex: 2, padding: isMobile ? "16px 16px 0" : "24px 32px 0" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: isMobile ? 10 : 16 }}>
+      <div style={{ position: "relative", zIndex: 2, padding: "24px 32px 0" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
-              <span style={{ fontSize: isMobile ? 24 : 32 }}>{"\u{1F43A}"}</span>
-              <h1 style={{
-                fontSize: isMobile ? 16 : 24, fontWeight: 900, letterSpacing: isMobile ? 2 : 4,
-                margin: 0, color: "#e8d5c4", textTransform: "uppercase",
-              }}>Black Wolf Survival</h1>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ fontSize: 32 }}>{"\u{1F43A}"}</span>
+              <h1 style={{ fontSize: 24, fontWeight: 900, letterSpacing: 4, margin: 0, color: "#e8d5c4", textTransform: "uppercase" }}>Black Wolf Survival</h1>
             </div>
-            <p style={{
-              fontSize: isMobile ? 9 : 12, letterSpacing: isMobile ? 1.5 : 3,
-              color: "#c23a22", margin: `4px 0 0 ${isMobile ? 30 : 42}px`,
-              textTransform: "uppercase", fontWeight: 700,
-            }}>Arbre de progression</p>
+            <p style={{ fontSize: 12, letterSpacing: 3, color: "#c23a22", margin: "4px 0 0 42px", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
           </div>
 
           <div style={{ textAlign: "right" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-              <span style={{ fontSize: isMobile ? 10 : 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
-              <span style={{
-                fontSize: isMobile ? 15 : 20, fontWeight: 900, letterSpacing: 1,
-                color: rank === "Berserker" ? "#d4a017" : "#c23a22",
-              }}>{rank}</span>
+              <span style={{ fontSize: 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
+              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
-              <span style={{ fontSize: isMobile ? 10 : 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>XP</span>
-              <div style={{
-                width: isMobile ? 120 : 180, height: isMobile ? 8 : 10,
-                background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden",
-              }}>
+              <span style={{ fontSize: 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>XP</span>
+              <div style={{ width: 180, height: 10, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
                 <div style={{
                   width: `${(totalXP / maxXP) * 100}%`, height: "100%",
-                  background: totalXP >= maxXP
-                    ? "linear-gradient(90deg, #d4a017, #f0c040)"
-                    : "linear-gradient(90deg, #c23a22, #e85d3a)",
+                  background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
                   borderRadius: 4, transition: "width 0.6s ease",
                   boxShadow: totalXP >= maxXP ? "0 0 12px #d4a01766" : "0 0 8px #c23a2266",
                 }} />
               </div>
-              <span style={{ fontSize: isMobile ? 12 : 14, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>
-                {totalXP}/{maxXP}
-              </span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>{totalXP}/{maxXP}</span>
             </div>
-            <div style={{ fontSize: isMobile ? 10 : 11, color: "#555", marginTop: 4, fontFamily: "'Courier New', monospace" }}>
-              {completedCount}/{totalCount} cours complétés
-            </div>
+            <div style={{ fontSize: 11, color: "#555", marginTop: 4, fontFamily: "'Courier New', monospace" }}>{completedCount}/{totalCount} cours complétés</div>
           </div>
         </div>
 
         {/* Tier labels */}
-        <div style={{
-          display: isMobile ? "none" : "flex", justifyContent: "space-between",
-          margin: "16px 50px 0",
-          position: "relative", zIndex: 2,
-        }}>
+        <div style={{ display: "flex", justifyContent: "space-between", margin: "16px 50px 0", position: "relative", zIndex: 2 }}>
           {TIER_LABELS.map((label, i) => (
             <div key={i} style={{ textAlign: "center" }}>
               <span style={{
@@ -719,13 +934,7 @@ function SkillTree() {
       </div>
 
       {/* Skill Tree SVG */}
-      <div ref={scrollRef} style={{
-        position: "relative", zIndex: 2,
-        overflowX: isMobile ? "auto" : "hidden",
-        overflowY: "hidden",
-        WebkitOverflowScrolling: "touch",
-        paddingBottom: isMobile ? 8 : 0,
-      }}>
+      <div style={{ position: "relative", zIndex: 2, overflowX: "hidden", overflowY: "hidden" }}>
         <svg width={dimensions.width} height={dimensions.height} style={{ display: "block" }}>
           {/* Tier dividers */}
           {[1, 2, 3, 4, 5].map(tier => {
@@ -743,68 +952,15 @@ function SkillTree() {
         </svg>
       </div>
 
-      {/* Mobile scroll hint */}
-      {isMobile && showScrollHint && (
-        <React.Fragment>
-          <style>{`
-            @keyframes scrollBounce { 0%,100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
-            @keyframes hintFadeIn { from { opacity: 0; } to { opacity: 1; } }
-          `}</style>
-          {/* Right edge gradient fade */}
-          <div style={{
-            position: "absolute", top: 120, right: 0, width: 60, height: "calc(100% - 180px)",
-            background: "linear-gradient(90deg, transparent, #0a0a0acc 60%, #0a0a0a)",
-            pointerEvents: "none", zIndex: 3,
-            animation: "hintFadeIn 0.5s ease-out",
-          }} />
-          {/* Chevron + text */}
-          <div style={{
-            position: "absolute", top: "50%", right: 10, transform: "translateY(-50%)",
-            zIndex: 4, pointerEvents: "none", display: "flex", flexDirection: "column",
-            alignItems: "center", gap: 6,
-            animation: "hintFadeIn 0.8s ease-out",
-          }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 2,
-              animation: "scrollBounce 1.2s ease-in-out infinite",
-            }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c23a22" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c23a22" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: -14, opacity: 0.5 }}>
-                <polyline points="9 6 15 12 9 18" />
-              </svg>
-            </div>
-            <span style={{
-              fontSize: 9, color: "#c23a22", letterSpacing: 1.5, textTransform: "uppercase",
-              fontWeight: 700, fontFamily: "'Courier New', monospace",
-              writingMode: "vertical-rl", textOrientation: "mixed",
-            }}>GLISSER</span>
-          </div>
-        </React.Fragment>
-      )}
-
-      {/* Tooltip / Panel */}
-      {isMobile ? (
-        <MobileDetailPanel skill={selectedSkill} completed={completed}
-          onToggle={toggleSkill} onClose={() => setSelected(null)} />
-      ) : (
-        <DesktopTooltip skill={selectedSkill} completed={completed} />
-      )}
+      {/* Desktop Tooltip */}
+      <DesktopTooltip skill={selectedSkill} completed={completed} />
 
       {/* Footer */}
-      <div style={{ textAlign: "center", padding: isMobile ? "4px 0 16px" : "8px 0 20px", position: "relative", zIndex: 2 }}>
-        <p style={{ fontSize: isMobile ? 10 : 12, color: "#444", letterSpacing: isMobile ? 1 : 2, textTransform: "uppercase" }}>
-          {isMobile ? "Tape sur un cours pour voir les détails" : "Clique sur un cours pour marquer ta progression — Survole pour les détails"}
+      <div style={{ textAlign: "center", padding: "8px 0 20px", position: "relative", zIndex: 2 }}>
+        <p style={{ fontSize: 12, color: "#444", letterSpacing: 2, textTransform: "uppercase" }}>
+          Clique sur un cours pour marquer ta progression — Survole pour les détails
         </p>
       </div>
-
-      {/* Backdrop for mobile panel */}
-      {isMobile && selected && (
-        <div onClick={() => setSelected(null)} style={{
-          position: "fixed", inset: 0, background: "#000000aa", zIndex: 150,
-        }} />
-      )}
     </div>
   );
 }
