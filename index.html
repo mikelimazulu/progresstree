@@ -239,16 +239,6 @@ function SkillNode({ skill, position, completed, available, onToggle, onSelect, 
         {skill.icon}
       </text>
 
-      {/* XP badge */}
-      {isActive && (
-        <g>
-          <rect x={position.x + (isMobile ? 18 : 26)} y={position.y - (isMobile ? 36 : 46)} width={isBerserker ? 42 : 32} height={16} rx={3} fill={accentColor} />
-          <text x={position.x + (isMobile ? (isBerserker ? 39 : 34) : (isBerserker ? 47 : 42))} y={position.y - (isMobile ? 25 : 35)} textAnchor="middle" fill="#fff" fontSize="9" fontWeight="700" fontFamily="'Courier New', monospace">
-            +{skill.xp}
-          </text>
-        </g>
-      )}
-
       {/* Name label */}
       <text x={position.x} y={position.y + (isMobile ? 50 : 62)} textAnchor="middle"
         fill={isActive ? (isBerserker ? "#d4a017" : "#e8d5c4") : canUnlock ? "#aaa" : "#555"}
@@ -407,7 +397,6 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
         {/* Stats */}
         <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12, color: "#888", fontFamily: "'Courier New', monospace" }}>
           <span>{"\u23F1"} {skill.hours}</span>
-          <span>{"\u2B50"} {skill.xp} XP</span>
         </div>
 
         {/* Description */}
@@ -453,20 +442,25 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   );
 }
 
-/* Desktop tooltip */
-function DesktopTooltip({ skill, completed }) {
-  if (!skill) return null;
+/* Desktop tooltip - positioned near the hovered node */
+function DesktopTooltip({ skill, completed, position }) {
+  if (!skill || !position) return null;
   const isBerserker = skill.isChallenge;
   const accent = isBerserker ? "#d4a017" : "#c23a22";
 
   return (
     <div style={{
-      position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+      position: "absolute",
+      left: position.x,
+      top: position.y + 90,
+      transform: "translateX(-50%)",
       background: isBerserker
         ? "linear-gradient(180deg, #1a1600, #100e02)"
         : "linear-gradient(180deg, #1a1210, #120c0a)",
       border: `1px solid ${accent}44`, borderRadius: 8, padding: "18px 28px",
-      maxWidth: 520, zIndex: 100, boxShadow: `0 8px 32px #00000088, 0 0 20px ${accent}11`,
+      width: 420, maxWidth: "90vw", zIndex: 100,
+      boxShadow: `0 8px 32px #00000088, 0 0 20px ${accent}11`,
+      pointerEvents: "none",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
         <span style={{ fontSize: 24 }}>{skill.icon}</span>
@@ -477,7 +471,6 @@ function DesktopTooltip({ skill, completed }) {
       <p style={{ fontSize: 14, color: "#aaa", margin: "0 0 10px", lineHeight: 1.5 }}>{skill.description}</p>
       <div style={{ display: "flex", gap: 16, fontSize: 12, color: "#888", fontFamily: "'Courier New', monospace", flexWrap: "wrap" }}>
         <span>{"\u23F1"} {skill.hours}</span>
-        <span>{"\u2B50"} {skill.xp} XP</span>
       </div>
       {skill.required.length > 0 && (
         <div style={{ marginTop: 8, fontSize: 12, fontFamily: "'Courier New', monospace", display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -530,17 +523,6 @@ function SkillTree() {
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
   }, [isMobile]);
-
-  const totalXP = SKILLS.filter(s => completed.includes(s.id)).reduce((sum, s) => sum + s.xp, 0);
-  const maxXP = SKILLS.reduce((sum, s) => sum + s.xp, 0);
-  const rank =
-    totalXP === 0 ? "Étranger"
-    : totalXP < 500 ? "Éclaireur"
-    : totalXP < 1200 ? "Traqueur"
-    : totalXP < 2500 ? "Guerrier du Nord"
-    : totalXP < 4000 ? "Chef de Meute"
-    : totalXP < 7750 ? "Jarl"
-    : "Berserker";
 
   const completedCount = completed.length;
   const totalCount = SKILLS.length;
@@ -672,14 +654,6 @@ function SkillTree() {
           {!canUnlock && !isActive && (
             <div style={{ position: "absolute", bottom: -2, right: -2, fontSize: 12, opacity: 0.5 }}>{"\u{1F512}"}</div>
           )}
-          {/* XP badge */}
-          {isActive && (
-            <div style={{
-              position: "absolute", top: -4, left: -4, background: accent,
-              borderRadius: 4, padding: "1px 5px", fontSize: 8, fontWeight: 700,
-              color: isBerserker ? "#000" : "#fff", fontFamily: "'Courier New', monospace",
-            }}>+{skill.xp}</div>
-          )}
         </div>
         {/* Label */}
         <span style={{
@@ -764,28 +738,6 @@ function SkillTree() {
               <h1 style={{ fontSize: 15, fontWeight: 900, letterSpacing: 2, margin: 0, color: "#e8d5c4", textTransform: "uppercase" }}>Black Wolf Survival</h1>
               <p style={{ fontSize: 9, letterSpacing: 1.5, color: "#c23a22", margin: "2px 0 0 0", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
             </div>
-          </div>
-          {/* Stats row */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            background: "#0e0e0e", borderRadius: 8, padding: "10px 14px",
-            border: "1px solid #1a1a1a",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 8, letterSpacing: 2, color: "#666", textTransform: "uppercase" }}>Rang</span>
-              <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ width: 80, height: 6, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
-                <div style={{
-                  width: `${(totalXP / maxXP) * 100}%`, height: "100%",
-                  background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
-                  borderRadius: 4, transition: "width 0.6s ease",
-                }} />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace", whiteSpace: "nowrap" }}>{totalXP}/{maxXP} XP</span>
-            </div>
-            <span style={{ fontSize: 9, color: "#555", fontFamily: "'Courier New', monospace", whiteSpace: "nowrap" }}>{completedCount}/{totalCount}</span>
           </div>
         </div>
 
@@ -886,26 +838,6 @@ function SkillTree() {
             </div>
             <p style={{ fontSize: 12, letterSpacing: 3, color: "#c23a22", margin: "4px 0 0 42px", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
           </div>
-
-          <div style={{ textAlign: "right" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-              <span style={{ fontSize: 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
-              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
-              <span style={{ fontSize: 12, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>XP</span>
-              <div style={{ width: 180, height: 10, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
-                <div style={{
-                  width: `${(totalXP / maxXP) * 100}%`, height: "100%",
-                  background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
-                  borderRadius: 4, transition: "width 0.6s ease",
-                  boxShadow: totalXP >= maxXP ? "0 0 12px #d4a01766" : "0 0 8px #c23a2266",
-                }} />
-              </div>
-              <span style={{ fontSize: 14, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>{totalXP}/{maxXP}</span>
-            </div>
-            <div style={{ fontSize: 11, color: "#555", marginTop: 4, fontFamily: "'Courier New', monospace" }}>{completedCount}/{totalCount} cours complétés</div>
-          </div>
         </div>
 
         {/* Tier labels */}
@@ -923,7 +855,7 @@ function SkillTree() {
       </div>
 
       {/* Skill Tree SVG */}
-      <div style={{ position: "relative", zIndex: 2, overflowX: "hidden", overflowY: "hidden" }}>
+      <div style={{ position: "relative", zIndex: 2, overflowX: "hidden", overflowY: "visible" }}>
         <svg width={dimensions.width} height={dimensions.height} style={{ display: "block" }}>
           {/* Tier dividers */}
           {[1, 2, 3, 4, 5].map(tier => {
@@ -939,10 +871,9 @@ function SkillTree() {
               selected={selected} isMobile={isMobile} />
           ))}
         </svg>
+        {/* Tooltip inside SVG container so absolute position matches node coords */}
+        <DesktopTooltip skill={selectedSkill} completed={completed} position={selectedSkill ? positions[selectedSkill.id] : null} />
       </div>
-
-      {/* Desktop Tooltip */}
-      <DesktopTooltip skill={selectedSkill} completed={completed} />
 
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "8px 0 20px", position: "relative", zIndex: 2 }}>
