@@ -376,7 +376,7 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   return (
     <div ref={panelRef}
       style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9999,
         background: isBerserker
           ? "linear-gradient(180deg, #1a1600 0%, #0e0c02 100%)"
           : "linear-gradient(180deg, #1a1210 0%, #0e0906 100%)",
@@ -767,31 +767,35 @@ function SkillTree() {
 
         {/* Header */}
         <div style={{ position: "relative", zIndex: 2, padding: "16px 16px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          {/* Title row */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <span style={{ fontSize: 24 }}>{"\u{1F43A}"}</span>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 24 }}>{"\u{1F43A}"}</span>
-                <h1 style={{ fontSize: 16, fontWeight: 900, letterSpacing: 2, margin: 0, color: "#e8d5c4", textTransform: "uppercase" }}>Black Wolf Survival</h1>
-              </div>
-              <p style={{ fontSize: 9, letterSpacing: 1.5, color: "#c23a22", margin: "4px 0 0 32px", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
+              <h1 style={{ fontSize: 15, fontWeight: 900, letterSpacing: 2, margin: 0, color: "#e8d5c4", textTransform: "uppercase" }}>Black Wolf Survival</h1>
+              <p style={{ fontSize: 9, letterSpacing: 1.5, color: "#c23a22", margin: "2px 0 0 0", textTransform: "uppercase", fontWeight: 700 }}>Arbre de progression</p>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
-                <span style={{ fontSize: 9, letterSpacing: 2, color: "#888", textTransform: "uppercase" }}>Rang</span>
-                <span style={{ fontSize: 14, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4, justifyContent: "flex-end" }}>
-                <div style={{ width: 100, height: 6, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
-                  <div style={{
-                    width: `${(totalXP / maxXP) * 100}%`, height: "100%",
-                    background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
-                    borderRadius: 4, transition: "width 0.6s ease",
-                  }} />
-                </div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace" }}>{totalXP}/{maxXP}</span>
-              </div>
-              <div style={{ fontSize: 9, color: "#555", marginTop: 3, fontFamily: "'Courier New', monospace" }}>{completedCount}/{totalCount} cours</div>
+          </div>
+          {/* Stats row */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "#0e0e0e", borderRadius: 8, padding: "10px 14px",
+            border: "1px solid #1a1a1a",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 8, letterSpacing: 2, color: "#666", textTransform: "uppercase" }}>Rang</span>
+              <span style={{ fontSize: 15, fontWeight: 900, letterSpacing: 1, color: rank === "Berserker" ? "#d4a017" : "#c23a22" }}>{rank}</span>
             </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 80, height: 6, background: "#1a1a1a", borderRadius: 4, border: "1px solid #333", overflow: "hidden" }}>
+                <div style={{
+                  width: `${(totalXP / maxXP) * 100}%`, height: "100%",
+                  background: totalXP >= maxXP ? "linear-gradient(90deg, #d4a017, #f0c040)" : "linear-gradient(90deg, #c23a22, #e85d3a)",
+                  borderRadius: 4, transition: "width 0.6s ease",
+                }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#e8d5c4", fontFamily: "'Courier New', monospace", whiteSpace: "nowrap" }}>{totalXP}/{maxXP} XP</span>
+            </div>
+            <span style={{ fontSize: 9, color: "#555", fontFamily: "'Courier New', monospace", whiteSpace: "nowrap" }}>{completedCount}/{totalCount}</span>
           </div>
         </div>
 
@@ -860,15 +864,17 @@ function SkillTree() {
           </p>
         </div>
 
-        {/* Mobile detail panel */}
-        <MobileDetailPanel skill={selectedSkill} completed={completed}
-          onToggle={toggleSkill} onClose={() => setSelected(null)} />
-
-        {/* Backdrop */}
-        {selected && (
+        {/* Backdrop + Panel rendered via portal to body for reliable fixed positioning */}
+        {selected && ReactDOM.createPortal(
           <div onClick={() => setSelected(null)} style={{
-            position: "fixed", inset: 0, background: "#000000aa", zIndex: 150,
-          }} />
+            position: "fixed", inset: 0, background: "#000000aa", zIndex: 9998,
+          }} />,
+          document.body
+        )}
+        {selectedSkill && ReactDOM.createPortal(
+          <MobileDetailPanel skill={selectedSkill} completed={completed}
+            onToggle={toggleSkill} onClose={() => setSelected(null)} />,
+          document.body
         )}
       </div>
     );
