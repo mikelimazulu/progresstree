@@ -325,7 +325,7 @@ function ConnectionLine({ from, to, isActive, isAvailable, isMobile, isBerserker
   );
 }
 
-/* Mobile detail modal - centered in viewport */
+/* Mobile detail modal - positioned at current viewport */
 function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   if (!skill) return null;
   const isActive = completed.includes(skill.id);
@@ -333,28 +333,36 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
   const isBerserker = skill.isChallenge;
   const accent = isBerserker ? "#d4a017" : "#c23a22";
   const missingReqs = skill.required.filter(r => !completed.includes(r));
+  const modalRef = useRef(null);
 
-  /* Prevent body scroll when modal is open */
+  /* Position at current scroll + scroll into view as fallback */
+  const [topPos, setTopPos] = useState(0);
   useEffect(() => {
+    const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const viewH = window.innerHeight || document.documentElement.clientHeight;
+    setTopPos(scrollY + Math.max(viewH * 0.08, 16));
     document.body.style.overflow = "hidden";
+    /* Fallback: scroll modal into view */
+    setTimeout(() => {
+      if (modalRef.current) modalRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
     return () => { document.body.style.overflow = ""; };
-  }, []);
+  }, [skill.id]);
 
   return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 9999,
-      display: "flex", alignItems: "center", justifyContent: "center",
-      padding: "20px 16px",
-    }}>
-      {/* Backdrop */}
+    <React.Fragment>
+      {/* Backdrop - absolute covers entire page */}
       <div onClick={onClose} style={{
-        position: "absolute", inset: 0, background: "#000000cc",
+        position: "absolute", top: 0, left: 0, right: 0,
+        height: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, 2000),
+        background: "#000000cc", zIndex: 9998,
       }} />
 
       {/* Modal card */}
-      <div style={{
-        position: "relative", width: "100%", maxWidth: 380, maxHeight: "85vh",
-        overflowY: "auto",
+      <div ref={modalRef} style={{
+        position: "absolute", top: topPos, left: 16, right: 16,
+        maxWidth: 400, margin: "0 auto",
+        zIndex: 9999,
         background: isBerserker
           ? "linear-gradient(180deg, #1a1600 0%, #0e0c02 100%)"
           : "linear-gradient(180deg, #1a1210 0%, #0e0906 100%)",
@@ -441,7 +449,7 @@ function MobileDetailPanel({ skill, completed, onToggle, onClose }) {
           {isActive ? "\u2713 Complété — Retirer" : canUnlock ? (isBerserker ? "\u{1FA93} Relever le défi" : "Marquer comme complété") : "\u{1F512} Prérequis manquants"}
         </button>
       </div>
-    </div>
+    </React.Fragment>
   );
 }
 
@@ -846,11 +854,10 @@ function SkillTree() {
           </p>
         </div>
 
-        {/* Modal rendered via portal for reliable positioning */}
-        {selectedSkill && ReactDOM.createPortal(
+        {/* Modal */}
+        {selectedSkill && (
           <MobileDetailPanel skill={selectedSkill} completed={completed}
-            onToggle={toggleSkill} onClose={() => setSelected(null)} />,
-          document.body
+            onToggle={toggleSkill} onClose={() => setSelected(null)} />
         )}
       </div>
     );
