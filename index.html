@@ -77,6 +77,14 @@ const SKILLS = [
     icon: "\u{1F43E}", hours: "12h", xp: 400,
   },
   {
+    id: "hivernale",
+    name: "Loup Arctique",
+    subtitle: "Survie hivernale",
+    description: "Maîtrisez la survie en conditions hivernales extrêmes. Abris de neige, feu dans le froid, gestion de l'hypothermie et techniques arctiques.",
+    tier: 1, required: [],
+    icon: "\u{2744}\u{FE0F}", hours: "24h", xp: 450,
+  },
+  {
     id: "intermediaire",
     name: "Survie Intermédiaire",
     subtitle: "Chasseur de l'ombre",
@@ -632,7 +640,7 @@ function SkillTree() {
             <MobileNode skill={SKILLS.find(s => s.id === "debutant")} size="lg" />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, justifyItems: "center", padding: "4px 0 4px" }}>
-            {["apothicaire","soins","navigation","camouflage","pistage"].map(id => (
+            {["apothicaire","soins","navigation","camouflage","pistage","hivernale"].map(id => (
               <MobileNode key={id} skill={SKILLS.find(s => s.id === id)} size="sm" />
             ))}
           </div>
