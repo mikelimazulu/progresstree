@@ -33,7 +33,7 @@ const SKILLS = [
   { id:"intermediaire",name:"Instinct du Loup",        sub:"Survie intermédiaire · 48h",          icon:"⚔️", hours:"48h",               desc:"Feu par friction, abri 100% naturel, corde de fibres naturelles, pièges, traitement de l'eau. Prérequis : Rite des Bois OU Loup Arctique.", req:["debutant"] },
   { id:"avance",       name:"Survie Avancée",          sub:"Alpha de la meute · 48h",             icon:"🐊", hours:"48h",               desc:"Survie prolongée en autonomie complète. Prérequis : Instinct du Loup.", req:["intermediaire"] },
   { id:"sere",         name:"S.E.R.E.",                sub:"Survie Évasion Résistance · 72h",     icon:"🎖️", hours:"72h",               desc:"Programme d'élite militaire. Prérequis : Survie Avancée + Navigation (Vrai Nord) + Loup Furtif.", req:["avance","navigation","camouflage"] },
-  { id:"berserker",    name:"Défi Berserker",          sub:"La voie du Valhalla",                 icon:"🪓", hours:"???", legend:true,   desc:"Le défi ultime. Seuls ceux qui ont maîtrisé chaque discipline peuvent s'avancer.", req:["sere"] },
+  { id:"Ulfhednar",    name:"Défi Ulfhednar",          sub:"La voie du Valhalla",                 icon:"🪓", hours:"???", legend:true,   desc:"Le défi ultime. Seuls ceux qui ont maîtrisé chaque discipline peuvent s'avancer.", req:["sere"] },
 ];
 
 /* ─── POSITIONS (desktop: 1280×860) ────────────────────── */
@@ -49,7 +49,7 @@ const POS = {
   intermediaire:{ x: 700, y: 430 },
   avance:       { x: 870, y: 430 },
   sere:         { x: 1040, y: 430 },
-  berserker:    { x: 1200, y: 430 },
+  Ulfhednar:    { x: 1200, y: 430 },
 };
 
 /* ─── CONNECTIONS ───────────────────────────────────────── */
@@ -62,7 +62,7 @@ const CONNECTIONS = [
   { from:"avance",       to:"sere",          type:"main" },
   { from:"navigation",   to:"sere",          type:"sere" },
   { from:"camouflage",   to:"sere",          type:"sere" },
-  { from:"sere",         to:"berserker",     type:"gold" },
+  { from:"sere",         to:"Ulfhednar",     type:"gold" },
 ];
 
 /* ─── HELPERS ───────────────────────────────────────────── */
@@ -401,9 +401,9 @@ function App() {
             <svg width="20" height="24"><line x1="10" y1="0" x2="10" y2="18" stroke={completed.has("debutant")||completed.has("hivernale")?C.main:"#333"} strokeWidth="1.5"/><polygon points="4,16 10,22 16,16" fill={completed.has("debutant")||completed.has("hivernale")?C.main:"#333"}/></svg>
           </div>
           {/* Progression */}
-          {["intermediaire","avance","sere","berserker"].map((id,i) => {
+          {["intermediaire","avance","sere","Ulfhednar"].map((id,i) => {
             const s = SKILLS.find(x=>x.id===id);
-            const accent = id==="berserker"?C.gold:C.main;
+            const accent = id==="Ulfhednar"?C.gold:C.main;
             return (
               <React.Fragment key={id}>
                 <div style={{ fontSize:9, color:"#555", textTransform:"uppercase", letterSpacing:2, textAlign:"center", marginBottom:4 }}>
@@ -413,7 +413,7 @@ function App() {
                 <div style={{ display:"flex", justifyContent:"center", marginBottom:4 }}>
                   <MobileCard skill={s} completed={completed} onSelect={setTooltip}/>
                 </div>
-                {id!=="berserker" && <div style={{ display:"flex", justifyContent:"center", marginBottom:4 }}>
+                {id!=="Ulfhednar" && <div style={{ display:"flex", justifyContent:"center", marginBottom:4 }}>
                   <svg width="20" height="24"><line x1="10" y1="0" x2="10" y2="18" stroke={completed.has(id)?accent:"#333"} strokeWidth="1.5"/><polygon points="4,16 10,22 16,16" fill={completed.has(id)?accent:"#333"}/></svg>
                 </div>}
               </React.Fragment>
